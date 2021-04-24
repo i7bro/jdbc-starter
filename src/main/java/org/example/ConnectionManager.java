@@ -28,6 +28,10 @@ public final class ConnectionManager {
     private ConnectionManager() {
     }
 
+    /**
+     * Connection pool for dropping on expensive
+     * open connection operations
+     */
     private static void initConnectionPool() {
         String poolSize = PropertiesUtil.get(POOL_SIZE_KEY);
         int size = poolSize == null ? DEFAULT_POOL_SIZE : Integer.parseInt(poolSize);
@@ -35,6 +39,11 @@ public final class ConnectionManager {
         sourceConnection = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             Connection connection = open();
+//            создаем прокси для перехвата метода Close()
+//            нужно другое поведение
+//            при попытке закрыть соединение, оно возвращается обратно в очередь
+//            для дальнейшего использования
+//                    (так как оперция открытия соединения дорогая)
             Connection proxyConnection = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class[]{Connection.class},
                     (proxy, method, args) -> method.getName().equals("close")
                             ? pool.add((Connection) proxy)
@@ -54,6 +63,7 @@ public final class ConnectionManager {
 
     private static Connection open() {
         try {
+//            получение ключей из класса проперти
             return DriverManager.getConnection(
                     PropertiesUtil.get(URL_KEY),
                     PropertiesUtil.get(USERNAME_KEY),
@@ -64,6 +74,9 @@ public final class ConnectionManager {
         }
     }
 
+    /**
+     * загрузка драйвера, если java страрой версии
+     */
     private static void loadDriver() {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
@@ -72,6 +85,7 @@ public final class ConnectionManager {
         }
     }
 
+//    реализация собстенного метода закрытия соединений
     public static void closePool() {
         try {
             for (Connection connection : sourceConnection) {
