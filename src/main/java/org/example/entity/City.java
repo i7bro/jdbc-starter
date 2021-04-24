@@ -3,14 +3,14 @@ package org.example.entity;
 public class City {
 
     private int id;
-    private String countryCode;
+    private Country countryCode; //сюда переается сразу сущность Country
     private String district;
     private String name;
     private int population;
 
     public City() {}
 
-    public City(int id, String countryCode, String district, String name, int population) {
+    public City(int id, Country countryCode, String district, String name, int population) {
         this.id = id;
         this.countryCode = countryCode;
         this.district = district;
@@ -26,11 +26,11 @@ public class City {
         this.id = id;
     }
 
-    public String getCountryCode() {
+    public Country getCountryCode() {
         return countryCode;
     }
 
-    public void setCountryCode(String countryCode) {
+    public void setCountryCode(Country countryCode) {
         this.countryCode = countryCode;
     }
 
@@ -62,7 +62,7 @@ public class City {
     public String toString() {
         return "City{" +
                 "id=" + id +
-                ", countryCode='" + countryCode + '\'' +
+                ", countryCode='" + countryCode.getCode() + '\'' +
                 ", district='" + district + '\'' +
                 ", name='" + name + '\'' +
                 ", population=" + population +

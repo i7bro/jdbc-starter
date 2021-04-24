@@ -1,11 +1,9 @@
 package org.example.dao;
 
-import jdk.nashorn.internal.ir.LiteralNode;
 import org.example.ConnectionManager;
 import org.example.dto.CityFilter;
 import org.example.entity.City;
 import org.example.exception.DaoException;
-import org.w3c.dom.traversal.DocumentTraversal;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -14,7 +12,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class CityDao {
+
+// ДАО лучше не делать final, так как
+// их могут использовать ORM, котрые будут создавать
+// PROXY на эти классы
+public class CityDao implements Dao<Integer, City> {
 
     private static final CityDao INSTANCE = new CityDao();
     private static final String DELETE_SQL = "delete from city where id = ?;";
@@ -26,9 +28,13 @@ public class CityDao {
     private static final String FIND_ALL_SQL =
             "select id, countryCode, district, name, population from city";
     private static final String FIND_BY_ID_SQL = FIND_ALL_SQL + " where id = ?";
+    private static final CountryDao countryDao = CountryDao.getInstance();
 
-    public CityDao() {
+    private CityDao() {
     }
+
+//    Здесь в одну коллекцию сохранием условия WHERE
+//    в другой значения для параметров
 
     public List<City> findAll(CityFilter cityFilter) {
         List<City> list = new ArrayList<>();
@@ -56,7 +62,6 @@ public class CityDao {
             for (int i = 0; i < parameters.size(); i++) {
                 statement.setObject(i + 1, parameters.get(i));
             }
-            System.out.println(sql);
             ResultSet resultSet = statement.executeQuery();
             while(resultSet.next()) {
                 list.add(buildCity(resultSet));
@@ -84,7 +89,7 @@ public class CityDao {
         }
     }
 
-    public Optional<City> findById(int id) {
+    public Optional<City> findById(Integer id) {
         try (Connection connection = ConnectionManager.get();
              PreparedStatement preparedStatement = connection.prepareStatement(FIND_BY_ID_SQL)) {
 
@@ -104,7 +109,11 @@ public class CityDao {
     private City buildCity(ResultSet resultSet) throws SQLException {
         return new City(
                 resultSet.getInt("id"),
-                resultSet.getString("countryCode"),
+                countryDao.findById(
+                        resultSet.getString("countryCode"),
+//                        каждый Resulset знает о стэйтменте, а стейтмент
+//                        о соединении которое отркыло стейтмент
+                        resultSet.getStatement().getConnection()).orElse(null),
                 resultSet.getString("district"),
                 resultSet.getString("name"),
                 resultSet.getInt("population")
@@ -116,7 +125,7 @@ public class CityDao {
              PreparedStatement preparedStatement = connection.prepareStatement(UPDATE_SQL)) {
 
             preparedStatement.setInt(1, city.getId());
-            preparedStatement.setString(1, city.getCountryCode());
+            preparedStatement.setString(1, city.getCountryCode().getCode());
             preparedStatement.setString(2, city.getDistrict());
             preparedStatement.setString(3, city.getName());
             preparedStatement.setInt(4, city.getPopulation());
@@ -133,7 +142,7 @@ public class CityDao {
              PreparedStatement preparedStatement = connection.prepareStatement(SAVE_SQL)) {
 
             preparedStatement.setInt(1, city.getId());
-            preparedStatement.setString(2, city.getCountryCode());
+            preparedStatement.setString(2, city.getCountryCode().getCode());
             preparedStatement.setString(3, city.getDistrict());
             preparedStatement.setString(4, city.getName());
             preparedStatement.setInt(5, city.getPopulation());
@@ -146,7 +155,7 @@ public class CityDao {
 
     }
 
-    public boolean delete(int id) {
+    public boolean delete(Integer id) {
         try (Connection connection = ConnectionManager.get();
              PreparedStatement ps = connection.prepareStatement(DELETE_SQL)) {
 
