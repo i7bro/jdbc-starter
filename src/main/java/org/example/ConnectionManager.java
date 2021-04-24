@@ -1,8 +1,5 @@
 package org.example;
 
-import javax.xml.crypto.dsig.spec.XPathFilterParameterSpec;
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -10,7 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingDeque;
+
 import java.util.concurrent.BlockingQueue;
 
 public final class ConnectionManager {

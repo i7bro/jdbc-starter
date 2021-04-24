@@ -1,14 +1,18 @@
 package org.example.dao;
 
-import com.sun.scenario.effect.impl.prism.PrReflectionPeer;
+import jdk.nashorn.internal.ir.LiteralNode;
 import org.example.ConnectionManager;
+import org.example.dto.CityFilter;
 import org.example.entity.City;
 import org.example.exception.DaoException;
+import org.w3c.dom.traversal.DocumentTraversal;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class CityDao {
 
@@ -21,10 +25,47 @@ public class CityDao {
             "countryCode = ?, district = ?, name = ?, population = ? where id = ?;";
     private static final String FIND_ALL_SQL =
             "select id, countryCode, district, name, population from city";
-    private static final String FIND_BY_ID_SQL = FIND_ALL_SQL +
-                    " where id = ?";
+    private static final String FIND_BY_ID_SQL = FIND_ALL_SQL + " where id = ?";
 
     public CityDao() {
+    }
+
+    public List<City> findAll(CityFilter cityFilter) {
+        List<City> list = new ArrayList<>();
+        List<Object> parameters = new ArrayList<>();
+        List<String> whereSql = new ArrayList<>();
+
+        if (Objects.nonNull(cityFilter.getCountryCode())) {
+            whereSql.add("countryCode = ?");
+            parameters.add(cityFilter.getCountryCode());
+        }
+        if (Objects.nonNull(cityFilter.getDistrict())) {
+            whereSql.add("district = ?");
+            parameters.add(cityFilter.getDistrict());
+        }
+        parameters.add(cityFilter.getLimit());
+
+        String collect = whereSql.stream()
+                .collect(Collectors.joining(" and ", " where ", " limit ?"));
+        String sql = FIND_ALL_SQL + collect;
+
+
+        try (Connection connection = ConnectionManager.get();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            for (int i = 0; i < parameters.size(); i++) {
+                statement.setObject(i + 1, parameters.get(i));
+            }
+            System.out.println(sql);
+            ResultSet resultSet = statement.executeQuery();
+            while(resultSet.next()) {
+                list.add(buildCity(resultSet));
+            }
+        } catch (SQLException e) {
+            throw new DaoException(e);
+        }
+
+        return list;
     }
 
     public List<City> findAll() {
